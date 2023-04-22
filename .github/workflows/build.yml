@@ -1,0 +1,70 @@
+on:
+  push:
+    branches:
+    - main
+    paths:
+    - '.github/workflows/build.yml'
+    - 'create_bootstrap_archlinux.sh'
+    - 'Dockerfile'
+  pull_request:
+    paths:
+    - '.github/workflows/build.yml'
+    - 'create_bootstrap_archlinux.sh'
+    - 'Dockerfile'
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [aarch64, armv7h, i686, x86_64]
+      fail-fast: false
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: 'arm64,arm'
+    - name: Get bootstrap
+      run: |
+        ./create_bootstrap_archlinux.sh "${{ matrix.arch }}"
+        case "${{ matrix.arch }}" in
+          aarch64) platform="linux/arm64";;
+          armv7) platform="linux/arm/v7";;
+          x86_64) platform="linux/amd64";;
+          i686) platform="linux/386";;
+        esac
+        cat "archlinux-${{ matrix.arch }}.tar.gz" | docker import --platform "$platform" - archlinux-builder:bootstrap
+    - name: Build images docker
+      run: |
+        docker build -t ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }} .
+        docker save --output archlinux-builder-${{ matrix.arch }}.tar ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}
+    - uses: actions/upload-artifact@v3
+      with:
+        name: archlinux-builder-${{ matrix.arch }}
+        path: archlinux-builder-${{ matrix.arch }}.tar
+        if-no-files-found: error
+  push:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get docker images
+      uses: actions/download-artifact@v3
+      with:
+        path: ./
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Push docker images
+      run: |
+        for arch in aarch64 armv7h x86_64 i686; do
+          docker load < archlinux-builder-${arch}/archlinux-builder-${arch}.tar
+          docker push ghcr.io/termux-pacman/archlinux-builder:${arch}
+        done
