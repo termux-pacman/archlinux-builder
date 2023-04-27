@@ -32,4 +32,4 @@ RUN echo "archlinux-builder-v$(date +%y%m%d)" > /etc/hostname
 
 USER root
 WORKDIR /root
-ENTRYPOINT ["/bin/bash"]
+CMD ["/bin/bash"]
