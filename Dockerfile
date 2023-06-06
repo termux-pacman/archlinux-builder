@@ -25,12 +25,13 @@ RUN pacman -Syu --noconfirm; \
 RUN useradd -m user-build
 # Installing multilib compilers (only for x86_64)
 COPY arm_gcc.sh /arm_gcc.sh
+COPY aarch64_gcc.sh /aarch64_gcc.sh
 RUN if [ "$(pacman-conf Architecture)" = "x86_64" ]; then \
 	pacman -S lib32-glibc lib32-gcc-libs --noconfirm; \
-	pacman -S aarch64-linux-gnu-gcc --noconfirm; \
+	/aarch64_gcc.sh; \
 	/arm_gcc.sh; \
     fi; \
-    rm /arm_gcc.sh
+    rm /arm_gcc.sh /aarch64_gcc.sh
 # Creating dirs for glibc-packages
 RUN mkdir -p /data/data/com.termux/files/usr/glibc; \
     ln -s /lib /data/data/com.termux/files/usr/glibc/lib; \
