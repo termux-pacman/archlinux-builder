@@ -20,7 +20,8 @@ RUN pacman -Syu --noconfirm; \
 	gtest \
 	rsync \
 	ninja \
-	meson --noconfirm --needed
+	meson \
+	jq --noconfirm --needed
 # Creating user
 RUN useradd -m user-build
 # Installing multilib compilers (only for x86_64)
