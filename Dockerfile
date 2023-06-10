@@ -33,10 +33,6 @@ RUN if [ "$(pacman-conf Architecture)" = "x86_64" ]; then \
 	/arm_gcc.sh; \
     fi; \
     rm /arm_gcc.sh /aarch64_gcc.sh
-# Creating dirs for glibc-packages
-RUN mkdir -p /data/data/com.termux/files/usr/glibc; \
-    ln -s /lib /data/data/com.termux/files/usr/glibc/lib; \
-    ln -s /usr/share /data/data/com.termux/files/usr/glibc/share
 # Creating /VERSION
 RUN echo "v$(date +%y%m%d)" > /VERSION
 # Setting locale
