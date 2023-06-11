@@ -5,11 +5,15 @@ on:
     paths:
     - '.github/workflows/build.yml'
     - 'create_bootstrap_archlinux.sh'
+    - 'arm_gcc.sh'
+    - 'aarch64_gcc.sh'
     - 'Dockerfile'
   pull_request:
     paths:
     - '.github/workflows/build.yml'
     - 'create_bootstrap_archlinux.sh'
+    - 'arm_gcc.sh'
+    - 'aarch64_gcc.sh'
     - 'Dockerfile'
   schedule:
     - cron: '0 0 * * 0'
