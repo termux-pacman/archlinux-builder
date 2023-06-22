@@ -7,6 +7,7 @@ on:
     - 'create_bootstrap_archlinux.sh'
     - 'arm_gcc.sh'
     - 'aarch64_gcc.sh'
+    - 'i686_binutils.sh'
     - 'Dockerfile'
   pull_request:
     paths:
@@ -14,6 +15,7 @@ on:
     - 'create_bootstrap_archlinux.sh'
     - 'arm_gcc.sh'
     - 'aarch64_gcc.sh'
+    - 'i686_binutils.sh'
     - 'Dockerfile'
   schedule:
     - cron: '0 0 * * 0'
