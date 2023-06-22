@@ -27,12 +27,14 @@ RUN useradd -m user-build
 # Installing multilib compilers (only for x86_64)
 COPY arm_gcc.sh /arm_gcc.sh
 COPY aarch64_gcc.sh /aarch64_gcc.sh
+COPY i686_binutils.sh /i686_binutils.sh
 RUN if [ "$(pacman-conf Architecture)" = "x86_64" ]; then \
 	pacman -S lib32-glibc lib32-gcc-libs --noconfirm; \
 	/aarch64_gcc.sh; \
 	/arm_gcc.sh; \
+	/i686_binutils.sh; \
     fi; \
-    rm /arm_gcc.sh /aarch64_gcc.sh
+    rm /arm_gcc.sh /aarch64_gcc.sh /i686_binutils.sh
 # Creating /VERSION
 RUN echo "v$(date +%y%m%d)" > /VERSION
 # Setting locale
