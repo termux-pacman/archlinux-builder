@@ -31,23 +31,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
+      uses: docker/setup-qemu-action@v2.2.0
       with:
         platforms: 'arm64,arm'
     - name: Get bootstrap
+      run: ./create_bootstrap_archlinux.sh "${{ matrix.arch }}"
+    - name: Build images docker
       run: |
-        ./create_bootstrap_archlinux.sh "${{ matrix.arch }}"
         case "${{ matrix.arch }}" in
           aarch64) platform="linux/arm64";;
-          armv7) platform="linux/arm/v7";;
+          armv7h) platform="linux/arm/v7";;
           x86_64) platform="linux/amd64";;
           i686) platform="linux/386";;
         esac
         cat "archlinux-${{ matrix.arch }}.tar.gz" | docker import --platform "$platform" - archlinux-builder:bootstrap
-    - name: Build images docker
-      run: |
-        docker build -t ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }} .
-        docker save --output archlinux-builder-${{ matrix.arch }}.tar ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}
+        docker build --platform="$platform" -t "ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}" .
+        docker save --output archlinux-builder-${{ matrix.arch }}.tar "ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}"
     - uses: actions/upload-artifact@v3
       with:
         name: archlinux-builder-${{ matrix.arch }}
