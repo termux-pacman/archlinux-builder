@@ -2,17 +2,16 @@
 
 # Setting values
 arch="$1"
-file_db="core.db.tar.gz"
-# packages
+REPOS=(core extra)
 NEED=(base)
 DONE=""
 
 case $arch in
 	"aarch64"|"armv7h")
-		url="http://mirror.archlinuxarm.org/${arch}/core"
+		url="https://archlinuxarm.org/${arch}"
 		NEED+=(archlinuxarm-keyring);;
-	"x86_64") url="https://archive.archlinux.org/repos/last/core/os/x86_64";;
-	"i686") url="https://archive.archlinux32.org/repos/last/i686/core";;
+	"x86_64") url="https://archive.archlinux.org/repos/last";;
+	"i686") url="https://archive.archlinux32.org/repos/last/i686";;
 	*)
 		echo "Error: no architecture defined (only aarch64, armv7h, x86_64 and i686 are supported)"
 		exit 1;;
@@ -21,6 +20,14 @@ esac
 # Setting functions
 set_name() {
 	echo $(echo "$1" | sed 's/</ /; s/>/ /; s/=/ /g' | awk '{printf $1}')
+}
+
+get_url() {
+	if [ "$arch" = "x86_64" ]; then
+		echo "${url}/${1}/os/x86_64"
+	else
+		echo "${url}/${1}"
+	fi
 }
 
 get_value() {
@@ -43,17 +50,17 @@ get_value() {
 search_pkg() {
 	local pkgname="$1"
 	# By name
-	for i in $(ls db/$pkgname-*/desc 2> /dev/null); do
+	for i in $(ls db/*/$pkgname-*/desc 2> /dev/null); do
 		if [ $(get_value $i NAME) = "$pkgname" ]; then
 			echo $i
 			return
 		fi
 	done
 	# By provide
-	for i in $(grep -s -r $pkgname db | awk -F ':' '{printf $1 " "}'); do
+	for i in $(grep -s -r '^'$pkgname db/*/ | awk -F ':' '{printf $1 " "}'); do
 		for j in $(get_value $i PROVIDES); do
-			if [ $(set_name "$j") = "$pkgname" ]; then
-				echo $i
+			if [ $(set_name "$j") = $(set_name "$pkgname") ]; then
+				echo "$(dirname $i)/desc"
 				return
 			fi
 		done
@@ -68,22 +75,23 @@ download_pkg() {
 		echo "-> Skip by dirdesc"
 		return
 	fi
-	local pkgname=$(get_value $dir_desc NAME)
+	local pkgname=$(get_value ${dir_desc} NAME)
 	if $(echo "$DONE" | grep -q " $pkgname "); then
 		echo "-> Skip by DONE"
 		return
 	fi
-	local filename=$(get_value $dir_desc FILENAME)
+	local filename=$(get_value ${dir_desc} FILENAME)
 	if [ ! -d pkgs ]; then
 		mkdir pkgs
 	fi
+	local repo=$(echo "$dir_desc" | cut -d / -f 2)
 	if [ ! -f pkgs/$filename ]; then
-		curl -L $url/$filename --output pkgs/$filename
+		curl -L "$(get_url $repo)/$filename" --output pkgs/$filename
 	fi
 	echo "-> Extracting $filename"
-	local dir_pm_local="archlinux-$arch/var/lib/pacman/local/$(echo $dir_desc | cut -d / -f 2)"
+	local dir_pm_local="archlinux-$arch/var/lib/pacman/local/$(echo $dir_desc | cut -d / -f 3)"
 	mkdir -p "$dir_pm_local"
-	cp -r "$dir_desc" "$dir_pm_local/desc"
+	cp -r "${dir_desc}" "$dir_pm_local/desc"
 	mkdir pkg
 	if [ "$arch" = "x86_64" ] || [ "$arch" = "i686" ]; then
 		tar --use-compress-program=unzstd -xf pkgs/$filename -C pkg
@@ -106,23 +114,24 @@ download_pkg() {
 	rm -fr pkg
 	DONE+=" $pkgname "
 	if [ "$arch" = "aarch64" ] || [ "$arch" = "armv7h" ]; then
-		dir_desc=$(echo "$dir_desc" | sed 's/desc/depends/')
+		dir_desc="$(dirname $dir_desc)/depends"
 	fi
-	for i in $(get_value $dir_desc DEPENDS); do
+	for i in $(get_value ${dir_desc} DEPENDS); do
 		download_pkg $i
 	done
 }
 
 #main
-if [ ! -f $file_db ]; then
-	curl -L "$url/$file_db" --output $file_db
-fi
-mkdir db
+for repo in ${REPOS[*]}; do
+	mkdir -p db/$repo
+	file_db="${repo}.db"
+	curl -L "$(get_url $repo)/${file_db}" --output db/$file_db
+	tar xf db/$file_db -C db/$repo
+done
 mkdir archlinux-$arch
 mkdir -p "archlinux-$arch/var/lib/pacman/sync"
 mkdir -p "archlinux-$arch/var/lib/pacman/local"
 echo "9" >> "archlinux-$arch/var/lib/pacman/local/ALPM_DB_VERSION"
-tar xf $file_db -C db
 for i in ${NEED[*]}; do
 	download_pkg $i
 done
@@ -148,4 +157,4 @@ cd archlinux-$arch
 tar cf archlinux-$arch.tar.gz ./*
 mv archlinux-$arch.tar.gz ..
 cd ..
-rm -fr db pkgs archlinux-$arch $file_db
+rm -fr db pkgs archlinux-$arch

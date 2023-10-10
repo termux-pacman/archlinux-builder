@@ -36,7 +36,7 @@ RUN if [ "$(pacman-conf Architecture)" = "x86_64" ]; then \
     fi; \
     rm /arm_gcc.sh /aarch64_gcc.sh /i686_binutils.sh
 # Creating /VERSION
-RUN echo "v$(date +%y%m%d)" > /VERSION
+RUN echo "v$(date +%y%m%d)" > /root/BUILD_DATE
 # Setting locale
 RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen; \
     locale-gen
