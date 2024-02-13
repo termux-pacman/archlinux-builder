@@ -29,9 +29,9 @@ jobs:
       fail-fast: false
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2.2.0
+      uses: docker/setup-qemu-action@v3
       with:
         platforms: 'arm64,arm'
     - name: Get bootstrap
@@ -47,7 +47,7 @@ jobs:
         cat "archlinux-${{ matrix.arch }}.tar.gz" | docker import --platform "$platform" - archlinux-builder:bootstrap
         docker build --platform="$platform" -t "ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}" .
         docker save --output archlinux-builder-${{ matrix.arch }}.tar "ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}"
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: archlinux-builder-${{ matrix.arch }}
         path: archlinux-builder-${{ matrix.arch }}.tar
@@ -62,12 +62,12 @@ jobs:
       fail-fast: false
     steps:
     - name: Get docker images
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: archlinux-builder-${{ matrix.arch }}
         path: ./
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
