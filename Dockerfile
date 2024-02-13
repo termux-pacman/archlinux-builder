@@ -3,8 +3,10 @@ FROM archlinux-builder:bootstrap
 # Setting ca-certificates
 RUN update-ca-trust
 # Setting keys for pacman
+# - note: for some unknown reason, signature verification does not work on ARM, so it is disabled
 RUN pacman-key --init; \
-    pacman-key --populate
+    pacman-key --populate; \
+    sed -i 's|^SigLevel.*|SigLevel = Never|' /etc/pacman.conf
 # Updating and installing packages
 RUN pacman -Syu --noconfirm; \
     pacman -S \
