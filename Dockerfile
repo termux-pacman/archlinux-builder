@@ -5,8 +5,7 @@ RUN update-ca-trust
 # Setting keys for pacman
 # - note: for some unknown reason, signature verification does not work on ARM, so it is disabled
 RUN pacman-key --init; \
-    pacman-key --populate; \
-    sed -i 's|^SigLevel.*|SigLevel = Never|' /etc/pacman.conf
+    pacman-key --populate
 # Updating and installing packages
 RUN pacman -Syu --noconfirm; \
     pacman -S \
@@ -36,7 +35,8 @@ RUN if [ "$(pacman-conf Architecture)" = "x86_64" ]; then \
 	/arm_gcc.sh; \
 	/i686_binutils.sh; \
     fi; \
-    rm /arm_gcc.sh /aarch64_gcc.sh /i686_binutils.sh
+    rm /arm_gcc.sh /aarch64_gcc.sh /i686_binutils.sh; \
+    yes | pacman -Scc
 # Creating /VERSION
 RUN echo "v$(date +%y%m%d)" > /root/BUILD_DATE
 # Setting locale
