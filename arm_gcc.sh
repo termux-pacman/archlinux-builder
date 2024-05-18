@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+set -e
+
 # Username
 USER="user-build"
 
@@ -21,6 +23,7 @@ pacman -S elfutils gperf --noconfirm
 		sudo -H -u ${USER} bash -c "makepkg --skippgpcheck"
 		yes | pacman -U ${repo_name}*
 		cd ..
+		rm -fr ${repo_name}
 	done
 	cd ..
 	rm -fr arm_gcc

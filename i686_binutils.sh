@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+set -e
+
 # Username
 USER="user-build"
 

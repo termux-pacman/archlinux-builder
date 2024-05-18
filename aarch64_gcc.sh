@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+set -e
+
 # installing gcc-aarch64
 pacman -S aarch64-linux-gnu-gcc --noconfirm
 
