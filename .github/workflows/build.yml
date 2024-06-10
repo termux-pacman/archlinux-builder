@@ -25,48 +25,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [aarch64, armv7h, i686, x86_64]
-      fail-fast: false
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: 'arm64,arm'
     - name: Get bootstrap
-      run: ./create_bootstrap_archlinux.sh "${{ matrix.arch }}"
+      run: ./create_bootstrap_archlinux.sh "x86_64"
     - name: Build images docker
       run: |
-        case "${{ matrix.arch }}" in
-          aarch64) platform="linux/arm64";;
-          armv7h) platform="linux/arm/v7";;
-          x86_64) platform="linux/amd64";;
-          i686) platform="linux/386";;
-        esac
-        cat "archlinux-${{ matrix.arch }}.tar.gz" | docker import --platform "$platform" - archlinux-builder:bootstrap
-        docker build --platform="$platform" -t "ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}" .
-        docker save --output archlinux-builder-${{ matrix.arch }}.tar "ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}"
+        cat "archlinux-x86_64.tar.gz" | docker import --platform "linux/amd64" - archlinux-builder:bootstrap
+        docker build --platform="linux/amd64" -t "ghcr.io/termux-pacman/archlinux-builder:latest" .
+        docker save --output archlinux-builder-x86_64.tar "ghcr.io/termux-pacman/archlinux-builder:latest"
     - uses: actions/upload-artifact@v4
       with:
-        name: archlinux-builder-${{ matrix.arch }}
-        path: archlinux-builder-${{ matrix.arch }}.tar
+        name: archlinux-builder-x86_64
+        path: archlinux-builder-x86_64.tar
         if-no-files-found: error
   push:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [aarch64, armv7h, i686, x86_64]
-      fail-fast: false
     steps:
     - name: Get docker images
       uses: actions/download-artifact@v4
       with:
-        name: archlinux-builder-${{ matrix.arch }}
+        name: archlinux-builder-x86_64
         path: ./
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
@@ -76,5 +58,5 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Push docker images
       run: |
-        docker load < archlinux-builder-${{ matrix.arch }}.tar
-        docker push ghcr.io/termux-pacman/archlinux-builder:${{ matrix.arch }}
+        docker load < archlinux-builder-x86_64.tar
+        docker push ghcr.io/termux-pacman/archlinux-builder:latest
