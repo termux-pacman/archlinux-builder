@@ -4,13 +4,15 @@ FROM archlinux-builder:bootstrap
 RUN update-ca-trust
 # Adding the CGCT repo
 RUN echo -e "\n[cgct]\nServer = https://service.termux-pacman.dev/cgct/x86_64" >> /etc/pacman.conf
+# Setting user for pacman
+RUN useradd alpm
 # Setting keys for pacman
 RUN pacman-key --init; \
     pacman-key --populate; \
     pacman-key --recv-keys 998de27318e867ea976ba877389ceed64573dfca; \
     pacman-key --lsign-key 998de27318e867ea976ba877389ceed64573dfca
 # Updating and installing packages
-RUN pacman -Syu --noconfirm; \
+RUN pacman -Syyu --noconfirm; \
     pacman -S \
 	base-devel \
 	python \
