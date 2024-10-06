@@ -18,6 +18,7 @@ RUN pacman -Syyu --noconfirm; \
 	python \
 	git \
 	cmake \
+	rsync \
 	jq --noconfirm --needed
 # Creating user
 RUN useradd -m user-build
