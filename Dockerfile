@@ -4,8 +4,6 @@ FROM archlinux-builder:bootstrap
 RUN update-ca-trust
 # Adding the CGCT repo
 RUN echo -e "\n[cgct]\nServer = https://service.termux-pacman.dev/cgct/x86_64" >> /etc/pacman.conf
-# Setting user for pacman
-RUN useradd alpm
 # Setting keys for pacman
 RUN pacman-key --init; \
     pacman-key --populate; \
@@ -19,6 +17,8 @@ RUN pacman -Syyu --noconfirm; \
 	git \
 	cmake \
 	rsync \
+	sudo \
+	nano \
 	jq --noconfirm --needed
 # Creating user
 RUN useradd -m user-build

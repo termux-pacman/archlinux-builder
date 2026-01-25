@@ -11,7 +11,7 @@ case $arch in
 	"aarch64"|"armv7h")
 		url="https://archlinuxarm.org/${arch}"
 		NEED+=(archlinuxarm-keyring);;
-	"x86_64") url="https://archive.archlinux.org/repos/last";;
+	"x86_64") url="https://archive.archlinux.org";;
 	"i686") url="https://archive.archlinux32.org/repos/last/i686";;
 	*)
 		echo "Error: no architecture defined (only aarch64, armv7h, x86_64 and i686 are supported)"
@@ -28,10 +28,16 @@ print_desc() {
 }
 
 get_url() {
+	local type="${1}"
+	local repo="${2}"
+	local pkgname="${3}"
 	if [ "$arch" = "x86_64" ]; then
-		echo "${url}/${1}/os/x86_64"
+		case "${type}" in
+			"repo") echo "${url}/repos/last/${repo}/os/x86_64";;
+			"pkg") echo "${url}/packages/${pkgname::1}/${pkgname}"
+		esac
 	else
-		echo "${url}/${1}"
+		echo "${url}/${repo}"
 	fi
 }
 
@@ -89,7 +95,7 @@ download_pkg() {
 	fi
 	local repo=$(cut -d / -f 2 <<< "$dir_desc")
 	if [ ! -f pkgs/$filename ]; then
-		curl -L "$(get_url $repo)/$filename" --output pkgs/$filename
+		curl -L "$(get_url pkg $repo $pkgname)/$filename" --output pkgs/$filename
 	fi
 	echo "-> Extracting $filename"
 	local dir_pm_local="archlinux-$arch/var/lib/pacman/local/$(cut -d / -f 3 <<< $dir_desc)"
@@ -105,26 +111,16 @@ download_pkg() {
 			fi
 		done
 	} > "$dir_pm_local/desc"
-	mkdir pkg
-	if [ "$arch" = "x86_64" ] || [ "$arch" = "i686" ]; then
-		tar --use-compress-program=unzstd -xf pkgs/$filename -C pkg
-	else
-		tar -xJf pkgs/$filename -C pkg
-	fi
-	cp -r pkg/.MTREE "$dir_pm_local/mtree"
-	if [ -f pkg/.INSTALL ]; then
-		cp -r pkg/.INSTALL "$dir_pm_local/install"
-	fi
 	{
 		echo "%FILES%"
-		if [ -n "$(ls pkg)" ]; then
-			find pkg/* | cut -d / -f 2-
-		fi
+		fakeroot -- tar $([[ "$arch" = "x86_64" || "$arch" = "i686" ]] && echo '--use-compress-program=unzstd') \
+			-xvf pkgs/$filename -C archlinux-$arch --exclude='.BUILDINFO' --exclude='.PKGINFO' | \
+			grep -Ev '^.(BUILDINFO|MTREE|PKGINFO|INSTALL)' || true
 	} > "$dir_pm_local/files"
-	if [ -n "$(ls pkg)" ]; then
-		cp -r pkg/* archlinux-$arch
+	mv archlinux-$arch/.MTREE "$dir_pm_local/mtree"
+	if [ -f archlinux-$arch/.INSTALL ]; then
+		mv archlinux-$arch/.INSTALL "$dir_pm_local/install"
 	fi
-	rm -fr pkg
 	for i in $(get_value ${dir_desc} DEPENDS | sed 's|\\n| |g'); do
 		download_pkg $i
 	done
@@ -134,7 +130,7 @@ download_pkg() {
 for repo in ${REPOS[*]}; do
 	mkdir -p db/$repo
 	file_db="${repo}.db"
-	curl -L "$(get_url $repo)/${file_db}" --output db/$file_db
+	curl -L "$(get_url repo $repo)/${file_db}" --output db/$file_db
 	tar xf db/$file_db -C db/$repo
 done
 mkdir archlinux-$arch
@@ -147,12 +143,13 @@ done
 
 # Setting pacman
 sed -i 's|^#*.Server|Server|g' "archlinux-$arch/etc/pacman.d/mirrorlist"
-sed -i "s/^Architecture = auto/Architecture = $arch/" "archlinux-$arch/etc/pacman.conf"
-sed -i 's/^#ParallelDownloads/ParallelDownloads/' "archlinux-$arch/etc/pacman.conf"
+sed -i "s/^Architecture = auto/Architecture = $arch/; \
+	s/^#ParallelDownloads/ParallelDownloads/;
+	s/^DownloadUser/#DownloadUser/" "archlinux-$arch/etc/pacman.conf"
 
 # Creating archive bootstrap
 cd archlinux-$arch
-tar cf archlinux-$arch.tar.gz ./*
+fakeroot -- tar -cf archlinux-$arch.tar.gz ./*
 mv archlinux-$arch.tar.gz ..
 cd ..
 rm -fr db pkgs archlinux-$arch
