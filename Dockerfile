@@ -3,7 +3,7 @@ FROM archlinux-builder:bootstrap
 # Setting ca-certificates
 RUN update-ca-trust
 # Adding the CGCT repo
-RUN echo -e "\n[cgct]\nServer = https://service.termux-pacman.dev/cgct/x86_64" >> /etc/pacman.conf
+RUN echo -e "\n[cgct]\nServer = https://sync.termux-pacman.dev/cgct/x86_64" >> /etc/pacman.conf
 # Setting keys for pacman
 RUN pacman-key --init; \
     pacman-key --populate; \
